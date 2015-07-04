@@ -5,14 +5,20 @@ import subprocess
 import getpass
 import logging
 import itertools
+import fcntl
 import requests
 import json
+import select
 import multiprocessing
 from distutils.spawn import find_executable
 import pwd, grp
 
 
 class PatchError(Exception):
+	pass
+
+
+class CommandFailedError(Exception):
 	pass
 
 logger = logging.getLogger(__name__)
@@ -75,11 +81,11 @@ def init(path, apps_path=None, no_procfile=False, no_backups=False,
 	generate_redis_config(bench=path)
 
 def exec_cmd(cmd, cwd='.'):
-	try:
-		subprocess.check_call(cmd, cwd=cwd, shell=True)
-	except subprocess.CalledProcessError, e:
-		print "Error:", getattr(e, "output", None) or getattr(e, "error", None)
-		raise
+	stdout, stderr = get_std_streams()
+	p = subprocess.Popen(cmd, cwd=cwd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	return_code = print_output(p)
+	if return_code > 0:
+		raise CommandFailedError(cmd)
 
 def setup_env(bench='.'):
 	exec_cmd('virtualenv -q {} -p {}'.format('env', sys.executable), cwd=bench)
@@ -434,7 +440,11 @@ def run_frappe_cmd(*args, **kwargs):
 	bench = kwargs.get('bench', '.')
 	f = get_env_cmd('python', bench=bench)
 	sites_dir = os.path.join(bench, 'sites')
-	subprocess.check_call((f, '-m', 'frappe.utils.bench_helper', 'frappe') + args, cwd=sites_dir)
+	stdout, stderr = get_std_streams()
+	p = subprocess.Popen((f, '-m', 'frappe.utils.bench_helper', 'frappe') + args, cwd=sites_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	return_code = print_output(p)
+	if return_code > 0:
+		raise CommandFailedError(cmd)
 
 
 def pre_upgrade(from_ver, to_ver, bench='.'):
@@ -506,5 +516,22 @@ def update_translations(app, lang):
 		f.write(r.text.encode('utf-8'))
 	print 'downloaded for', app, lang
 
-	
+
+def print_output(p):
+	while p.poll() is None:
+		readx = select.select([p.stdout.fileno(), p.stderr.fileno()], [], [])[0]
+		for fd in readx:
+			if fd == p.stdout.fileno():
+				log_line(p.stdout.readline(), 'stdout')
+			if fd == p.stderr.fileno():
+				log_line(p.stderr.readline(), 'stderr')
+	return p.poll()
+
+
+def log_line(data, stream):
+	if stream == 'stderr':
+		return sys.stderr.write(data)
+	return sys.stdout.write(data)
+
+
 FRAPPE_VERSION = get_current_frappe_version()

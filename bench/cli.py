@@ -194,7 +194,7 @@ def new_site(site, mariadb_root_password=None, admin_password=None):
 @click.option('--auto',flag_value=True, type=bool)
 @click.option('--upgrade',flag_value=True, type=bool)
 @click.option('--no-backup',flag_value=True, type=bool)
-def update(pull=False, patch=False, build=False, bench=False, auto=False, restart_supervisor=False, requirements=False, no_backup=False, upgrade=False):
+def _update(pull=False, patch=False, build=False, bench=False, auto=False, restart_supervisor=False, requirements=False, no_backup=False, upgrade=False):
 	"Update bench"
 
 	if not (pull or patch or build or bench or requirements):
@@ -218,7 +218,15 @@ def update(pull=False, patch=False, build=False, bench=False, auto=False, restar
 				'upgrade': upgrade
 		})
 
-	version_upgrade = is_version_upgrade()
+	update(pull, patch, build, bench, auto, restart_supervisor, requirements, no_backup, upgrade)
+
+	print "_"*80
+	print "https://frappe.io/buy - Donate to help make better free and open source tools"
+	print
+
+def update(pull=False, patch=False, build=False, bench=False, auto=False, restart_supervisor=False, requirements=False, no_backup=False, upgrade=False, bench_path='.'):
+	conf = get_config(bench=bench_path)
+	version_upgrade = is_version_upgrade(bench=bench_path)
 
 	if version_upgrade and not upgrade:
 		print
@@ -233,31 +241,27 @@ def update(pull=False, patch=False, build=False, bench=False, auto=False, restar
 		upgrade = False
 
 	if pull:
-		pull_all_apps()
+		pull_all_apps(bench=bench_path)
 
 	if requirements:
-		update_requirements()
+		update_requirements(bench=bench_path)
 
 	if upgrade:
-		pre_upgrade(version_upgrade[0], version_upgrade[1])
+		pre_upgrade(version_upgrade[0], version_upgrade[1], bench=bench_path)
 		import utils, app
 		reload(utils)
 		reload(app)
 
 	if patch:
 		if not no_backup:
-			backup_all_sites()
-		patch_sites()
+			backup_all_sites(bench=bench_path)
+		patch_sites(bench=bench_path)
 	if build:
-		build_assets()
+		build_assets(bench=bench_path)
 	if restart_supervisor or conf.get('restart_supervisor_on_update'):
-		restart_supervisor_processes()
+		restart_supervisor_processes(bench=bench_path)
 	if upgrade:
-		post_upgrade(version_upgrade[0], version_upgrade[1])
-
-	print "_"*80
-	print "https://frappe.io/buy - Donate to help make better free and open source tools"
-	print
+		post_upgrade(version_upgrade[0], version_upgrade[1], bench=bench_path)
 
 @click.command('retry-upgrade')
 @click.option('--version', default=5)
@@ -562,7 +566,7 @@ bench.add_command(get_app)
 bench.add_command(new_app)
 bench.add_command(new_site)
 bench.add_command(setup)
-bench.add_command(update)
+bench.add_command(_update)
 bench.add_command(restart)
 bench.add_command(config)
 bench.add_command(start)
