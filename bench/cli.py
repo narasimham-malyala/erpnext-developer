@@ -14,11 +14,11 @@ from .utils import (build_assets, patch_sites, exec_cmd, update_bench, get_env_c
 					get_config, update_config, restart_supervisor_processes, put_config, default_config, update_requirements,
 					backup_all_sites, backup_site, get_sites, prime_wheel_cache, is_root, set_mariadb_host, drop_privileges,
 					fix_file_perms, fix_prod_setup_perms, set_ssl_certificate, set_ssl_certificate_key, get_cmd_output, post_upgrade,
-					pre_upgrade, PatchError, download_translations_p)
+					pre_upgrade, PatchError, download_translations_p, setup_socketio)
 from .app import get_app as _get_app
 from .app import new_app as _new_app
 from .app import pull_all_apps, get_apps, get_current_frappe_version, is_version_upgrade, switch_to_v4, switch_to_master, switch_to_develop
-from .config import generate_nginx_config, generate_supervisor_config, generate_redis_config
+from .config import generate_nginx_config, generate_supervisor_config, generate_redis_cache_config, generate_redis_async_broker_config
 from .production_setup import setup_production as _setup_production
 from .migrate_to_v5 import migrate_to_v5
 import os
@@ -201,11 +201,26 @@ def _update(pull=False, patch=False, build=False, bench=False, auto=False, resta
 		pull, patch, build, bench, requirements = True, True, True, True, True
 
 	conf = get_config()
+
+	version_upgrade = is_version_upgrade()
+
+	if version_upgrade and not upgrade:
+		print
+		print
+		print "This update will cause a major version change in Frappe/ERPNext from {0} to {1} (beta).".format(*version_upgrade)
+		print "This would take significant time to migrate and might break custom apps. Please run `bench update --upgrade` to confirm."
+		print 
+		# print "You can also pin your bench to {0} by running `bench swtich-to-v{0}`".format(version_upgrade[0])
+		print "You can stay on the latest stable release by running `bench switch-to-master` or pin your bench to {0} by running `bench swtich-to-v{0}`".format(version_upgrade[0])
+		sys.exit(1)
+
 	if conf.get('release_bench'):
 		print 'Release bench, cannot update'
 		sys.exit(1)
+
 	if auto:
 		sys.exit(1)
+
 	if bench and conf.get('update_bench_on_update'):
 		update_bench()
 		restart_update({
@@ -226,19 +241,9 @@ def _update(pull=False, patch=False, build=False, bench=False, auto=False, resta
 
 def update(pull=False, patch=False, build=False, bench=False, auto=False, restart_supervisor=False, requirements=False, no_backup=False, upgrade=False, bench_path='.'):
 	conf = get_config(bench=bench_path)
-	version_upgrade = is_version_upgrade(bench=bench_path)
-
+	version_upgrade = is_version_upgrade()
 	if version_upgrade and not upgrade:
-		print
-		print
-		print "This update will cause a major version change in Frappe/ERPNext from {0} to {1} (beta).".format(*version_upgrade)
-		print "This would take significant time to migrate and might break custom apps. Please run `bench update --upgrade` to confirm."
-		print 
-		# print "You can also pin your bench to {0} by running `bench swtich-to-v{0}`".format(version_upgrade[0])
-		print "You can stay on the latest stable release by running `bench switch-to-master` or pin your bench to {0} by running `bench swtich-to-v{0}`".format(version_upgrade[0])
-		sys.exit(1)
-	elif not version_upgrade and upgrade:
-		upgrade = False
+		raise Exception("Major Version Upgrade")
 
 	if pull:
 		pull_all_apps(bench=bench_path)
@@ -416,7 +421,12 @@ def setup_supervisor():
 @click.command('redis-cache')
 def setup_redis_cache():
 	"generate config for redis cache"
-	generate_redis_config()
+	generate_redis_cache_config()
+	
+@click.command('redis-async-broker')
+def setup_redis_async_broker():
+	"generate config for redis async broker"
+	generate_redis_async_broker_config()
 	
 @click.command('production')
 @click.argument('user')
@@ -444,9 +454,16 @@ def setup_env():
 	_setup_env()
 
 @click.command('procfile')
-def setup_procfile():
+@click.option('--with-watch', flag_value=True, type=bool)
+@click.option('--with-celery-broker', flag_value=True, type=bool)
+def setup_procfile(with_celery_broker, with_watch):
 	"Setup Procfile for bench start"
-	_setup_procfile()
+	_setup_procfile(with_celery_broker, with_watch)
+
+@click.command('socketio')
+def _setup_socketio():
+	"Setup node deps for socketio server"
+	setup_socketio()
 
 @click.command('config')
 def setup_config():
@@ -457,11 +474,13 @@ setup.add_command(setup_nginx)
 setup.add_command(setup_sudoers)
 setup.add_command(setup_supervisor)
 setup.add_command(setup_redis_cache)
+setup.add_command(setup_redis_async_broker)
 setup.add_command(setup_auto_update)
 setup.add_command(setup_dnsmasq)
 setup.add_command(setup_backups)
 setup.add_command(setup_env)
 setup.add_command(setup_procfile)
+setup.add_command(_setup_socketio)
 setup.add_command(setup_config)
 setup.add_command(setup_production)
 

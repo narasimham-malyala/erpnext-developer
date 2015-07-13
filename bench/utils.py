@@ -81,7 +81,6 @@ def init(path, apps_path=None, no_procfile=False, no_backups=False,
 	generate_redis_config(bench=path)
 
 def exec_cmd(cmd, cwd='.'):
-	stdout, stderr = get_std_streams()
 	p = subprocess.Popen(cmd, cwd=cwd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	return_code = print_output(p)
 	if return_code > 0:
@@ -92,7 +91,10 @@ def setup_env(bench='.'):
 	exec_cmd('./env/bin/pip -q install wheel', cwd=bench)
 	exec_cmd('./env/bin/pip -q install https://github.com/frappe/MySQLdb1/archive/MySQLdb-1.2.5-patched.tar.gz', cwd=bench)
 
-def setup_procfile(bench='.'):
+def setup_socketio(bench='.'):
+	exec_cmd("npm install nodemon socket.io redis express", cwd=bench)
+
+def setup_procfile(with_celery_broker=False, with_watch=False, bench='.'):
 	from .app import get_current_frappe_version
 	frappe_version = get_current_frappe_version()
 	procfile_contents = {
@@ -101,9 +103,15 @@ def setup_procfile(bench='.'):
 		'workerbeat': "sh -c 'cd sites && exec ../env/bin/python -m frappe.celery_app beat -s scheduler.schedule'"
 	}
 	if frappe_version > 4:
-		procfile_contents['redis_cache'] = "redis-server config/redis.conf"
+		procfile_contents['redis_cache'] = "redis-server config/redis_cache.conf"
+		procfile_contents['redis_async_broker'] = "redis-server config/redis_async_broker.conf"
 		procfile_contents['web'] = "bench serve"
-	
+		procfile_contents['socketio'] = "./node_modules/.bin/nodemon apps/frappe/socketio.js"
+		if with_celery_broker:
+			procfile_contents['redis_celery'] = "redis-server"
+		if with_watch:
+			procfile_contents['watch'] = "bench watch"
+
 	procfile = '\n'.join(["{0}: {1}".format(k, v) for k, v in procfile_contents.items()])
 
 	with open(os.path.join(bench, 'Procfile'), 'w') as f:
@@ -289,16 +297,13 @@ def update_site_config(site, new_config, bench='.'):
 	put_site_config(site, config, bench=bench)
 
 def set_nginx_port(site, port, bench='.', gen_config=True):
-	set_site_config_nginx_property(site, {"nginx_port": port}, bench=bench)
+	set_site_config_nginx_property(site, {"nginx_port": port}, bench=bench, gen_config=gen_config)
 
 def set_ssl_certificate(site, ssl_certificate, bench='.', gen_config=True):
-	set_site_config_nginx_property(site, {"ssl_certificate": ssl_certificate}, bench=bench)
+	set_site_config_nginx_property(site, {"ssl_certificate": ssl_certificate}, bench=bench, gen_config=gen_config)
 
 def set_ssl_certificate_key(site, ssl_certificate_key, bench='.', gen_config=True):
-	set_site_config_nginx_property(site, {"ssl_certificate_key": ssl_certificate_key}, bench=bench)
-
-def set_nginx_port(site, port, bench='.', gen_config=True):
-	set_site_config_nginx_property(site, {"nginx_port": port}, bench=bench)
+	set_site_config_nginx_property(site, {"ssl_certificate_key": ssl_certificate_key}, bench=bench, gen_config=gen_config)
 
 def set_site_config_nginx_property(site, config, bench='.', gen_config=True):
 	from .config import generate_nginx_config
