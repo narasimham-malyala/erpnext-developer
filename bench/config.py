@@ -48,7 +48,7 @@ def get_site_config(site, bench='.'):
 		return json.load(f)
 
 def get_sites_with_config(bench='.'):
-	sites = get_sites()
+	sites = get_sites(bench=bench)
 	ret = []
 	for site in sites:
 		site_config = get_site_config(site, bench=bench)

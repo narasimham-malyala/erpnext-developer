@@ -241,7 +241,7 @@ def _update(pull=False, patch=False, build=False, bench=False, auto=False, resta
 
 def update(pull=False, patch=False, build=False, bench=False, auto=False, restart_supervisor=False, requirements=False, no_backup=False, upgrade=False, bench_path='.'):
 	conf = get_config(bench=bench_path)
-	version_upgrade = is_version_upgrade()
+	version_upgrade = is_version_upgrade(bench=bench_path)
 	if version_upgrade and not upgrade:
 		raise Exception("Major Version Upgrade")
 

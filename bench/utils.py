@@ -5,7 +5,6 @@ import subprocess
 import getpass
 import logging
 import itertools
-import fcntl
 import requests
 import json
 import select
@@ -311,7 +310,7 @@ def set_site_config_nginx_property(site, config, bench='.', gen_config=True):
 		raise Exception("No such site")
 	update_site_config(site, config, bench=bench)
 	if gen_config:
-		generate_nginx_config()
+		generate_nginx_config(bench=bench)
 
 def set_url_root(site, url_root, bench='.'):
 	update_site_config(site, {"host_name": url_root}, bench=bench)
@@ -445,11 +444,16 @@ def run_frappe_cmd(*args, **kwargs):
 	bench = kwargs.get('bench', '.')
 	f = get_env_cmd('python', bench=bench)
 	sites_dir = os.path.join(bench, 'sites')
-	stdout, stderr = get_std_streams()
 	p = subprocess.Popen((f, '-m', 'frappe.utils.bench_helper', 'frappe') + args, cwd=sites_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	return_code = print_output(p)
 	if return_code > 0:
-		raise CommandFailedError(cmd)
+		raise CommandFailedError(args)
+
+def get_frappe_cmd_output(*args, **kwargs):
+	bench = kwargs.get('bench', '.')
+	f = get_env_cmd('python', bench=bench)
+	sites_dir = os.path.join(bench, 'sites')
+	return subprocess.check_output((f, '-m', 'frappe.utils.bench_helper', 'frappe') + args, cwd=sites_dir)
 
 
 def pre_upgrade(from_ver, to_ver, bench='.'):
@@ -525,9 +529,20 @@ def update_translations(app, lang):
 def print_output(p):
 	while p.poll() is None:
 		readx = select.select([p.stdout.fileno(), p.stderr.fileno()], [], [])[0]
+		send_buffer = []
 		for fd in readx:
 			if fd == p.stdout.fileno():
-				log_line(p.stdout.readline(), 'stdout')
+				while 1:
+					buf = p.stdout.read(1)
+					if not len(buf):
+						break
+					if buf == '\r' or buf == '\n':
+						send_buffer.append(buf)
+						log_line(''.join(send_buffer), 'stdout')
+						send_buffer = []
+					else:
+						send_buffer.append(buf)
+
 			if fd == p.stderr.fileno():
 				log_line(p.stderr.readline(), 'stderr')
 	return p.poll()
