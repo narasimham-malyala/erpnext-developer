@@ -1,0 +1,50 @@
+- name: Install dependacies
+  hosts: '{{ target }}'
+  become: '{{ use_sudo }}'
+  become_user: root
+  become_method: sudo
+  tasks:
+    - name: Setup Prerequisites
+      command: 'bench setup prerequisites'
+
+    - name: Setup logwatch
+      command: 'bench setup role logwatch --admin_emails "{{ admin_emails }}"'
+
+    - name: Setup mariadb
+      command: 'bench setup role mariadb --mysql_root_password {{ mysql_root_password }}'
+
+    - name: Setup Locale
+      command: 'bench setup role locale'
+
+    - name: Setup swap
+      command: 'bench setup role swap'
+
+    - name: Setup bash_screen_wall
+      command: 'bench setup role bash_screen_wall'
+
+    - name: Setup frappe_selinux
+      command: 'bench setup role frappe_selinux'
+
+    - name: Setup dns_caching
+      command: 'bench setup role dns_caching'
+
+    - name: Setup ntpd
+      command: 'bench setup role ntpd'
+
+    - name: Setup wkhtmltopdf
+      command: 'bench setup role wkhtmltopdf'
+
+    - name: Setup nodejs
+      command: 'bench setup role nodejs'
+
+    - name: Setup psutil
+      command: 'bench setup role psutil'
+
+    - name: Setup nginx
+      command: 'bench setup role nginx'
+
+    - name: Setup fail2ban
+      command: 'bench setup role fail2ban'
+
+    - name: update Sudoers permissions
+      command: 'bench setup sudoers frappe'

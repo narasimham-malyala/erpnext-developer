@@ -1,0 +1,23 @@
+---
+- name: Clone bench
+  hosts: all
+  user: "{{ frappe_user }}"
+  tasks:
+      - git:
+          repo=https://github.com/frappe/bench
+          dest=/home/frappe/bench-repo
+          depth=no
+  tags:
+    - bench_install
+
+- name: Install bench
+  hosts: all
+  become: yes
+  become_user: root
+  tasks:
+
+      - easy_install: name=pip executable=easy_install-2.7
+      - pip:          name=/home/frappe/bench-repo extra_args='-e'
+      - pip:          name=ansible
+  tags:
+    - bench_install

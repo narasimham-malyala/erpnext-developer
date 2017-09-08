@@ -19,8 +19,7 @@
 			[ "modifyvm", "{{.Name}}", "--natpf1", "vm_ssh,tcp,,3022,,22" ],
 			[ "modifyvm", "{{.Name}}", "--natpf1", "vm_http,tcp,,8080,,80" ]
 		]
-	}
-			   ],
+	}],
 	"provisioners": [{
 		"type": "shell",
 		"script": "scripts/install_ansible.sh"
@@ -28,10 +27,7 @@
 		"type": "ansible-local",
 		"playbook_file": "ansible/vm.yml",
 		"playbook_dir": "ansible",
-		"group_vars": "ansible/vm_vars",
-		"role_paths": [
-			"ansible/roles"
-		]
+		"group_vars": "ansible/vm_vars"
 	}, {
 		"type": "shell",
 		"script": "scripts/set_message.sh"
