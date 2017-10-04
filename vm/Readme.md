@@ -2,7 +2,7 @@
 
 #### Steps to build a vm image
 
-* Install VirtualBox
+* Install VirtualBox, `sudo apt-get install virtualbox`
 * Place a `base.ova` ubuntu base image in the current directory.
 * `./packer build vm.json` builds a new vm.
 

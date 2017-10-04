@@ -28,9 +28,6 @@
 			"playbook_file": "ansible/vm.yml",
 			"playbook_dir": "ansible",
 			"group_vars": "ansible/vm_vars",
-			"role_paths": [
-				"ansible/roles"
-			],
 			"extra_arguments": ["--extra-vars 'branch=master,is_production=true'", "-vvvv"]
 		}, {
 			"type": "shell",

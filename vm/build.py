@@ -7,7 +7,7 @@ import os
 import subprocess
 import stat
 
-BUILD_DIR = os.path.join(os.path.expanduser('~'), 'bench-develop', 'vm')
+BUILD_DIR = os.path.join(os.path.expanduser('~'), 'bench', 'vm')
 OUTPUT_DIR = os.path.join(BUILD_DIR, 'output-virtualbox-ovf')
 PUBLIC_DIR = os.path.join(os.path.expanduser('~'),  'public')
 BUILD_LIST = [os.path.join(BUILD_DIR, "vm.json"), os.path.join(BUILD_DIR, "vm-develop.json")]
@@ -20,7 +20,7 @@ def main():
 	generate_checksums()
 
 def build_vm(vm):
-        subprocess.check_call("/home/frappe/bench-develop/vm/packer build {vm}".format(vm=vm), shell=True)
+        subprocess.check_call("/home/frappe/bench/vm/packer build {vm}".format(vm=vm), shell=True)
 def move_to_public():
 	for file in get_output_files():
 		dest = os.path.join(PUBLIC_DIR, file)
