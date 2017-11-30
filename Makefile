@@ -26,21 +26,22 @@ CANIUSEPY3  = $(VENVBIN)/caniusepython3
 venv:
 	$(VIRTUALENV) $(VENV) --python $(SYSPYTHON)
 
+clean:
+	find $(BASEDIR) | grep -E "__pycache__|\.pyc" | xargs rm -rf
+
+	rm -rf $(BASEDIR)/$(PACKAGE).egg-info $(BASEIDR)/build $(BASEDIR)/dist
+
+	clear
+
 install:
 	cat requirements/*.txt          > requirements-dev.txt
 	cat requirements/production.txt > requirements.txt
 
 	$(PIP) install -r $(BASEDIR)/requirements-dev.txt
 
-	$(PYTHON) setup.py develop
+	$(PYTHON) setup.py install
 
-console:
-	$(IPYTHON)
-
-clean:
-	find $(BASEDIR) | grep -E "__pycache__|\.pyc" | xargs rm -rf
-
-	rm -rf $(BASEDIR)/$(PACKAGE).egg-info
+	make clean
 
 check.py3:
 	$(CANIUSEPY3) --requirements $(BASEDIR)/requirements-dev.txt
@@ -48,9 +49,5 @@ check.py3:
 test:
 	$(PYTEST)
 
-foobar:
-	rm -rf foo.bar
-
-	clear
-
-	$(VENVBIN)/bench init foo.bar
+console:
+	$(IPYTHON)

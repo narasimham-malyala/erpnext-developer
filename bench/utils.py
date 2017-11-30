@@ -73,7 +73,6 @@ def init(path, apps_path=None, no_procfile=False, no_backups=False,
 		if apps_path:
 			install_apps_from_path(apps_path, bench_path=path)
 
-
 	bench.set_frappe_version(bench_path=path)
 	if bench.FRAPPE_VERSION > 5:
 		update_npm_packages(bench_path=path)
@@ -821,3 +820,11 @@ def check_url(url, raise_err = True):
 			return False
 
 	return True
+
+def safe_decode(string, encoding = 'utf-8'):
+	try:
+		string = string.decode(encoding)
+	except UnicodeDecodeError as e:
+		pass
+
+	return string

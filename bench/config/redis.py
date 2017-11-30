@@ -2,10 +2,11 @@ from .common_site_config import get_config
 import re, os, subprocess, semantic_version
 import bench
 
-try:
-	from urllib.parse import urlparse
-except ImportError:
-	from urlparse import urlparse
+# imports - compatibility imports
+from six.moves.urllib.parse import urlparse
+
+# imports - module imports
+from bench import utils
 
 def generate_config(bench_path):
 	config = get_config(bench_path)
@@ -57,6 +58,7 @@ def write_redis_config(template_name, context, bench_path):
 
 def get_redis_version():
 	version_string = subprocess.check_output('redis-server --version', shell=True).strip()
+	version_string = utils.safe_decode(version_string, encoding = 'utf-8')
 
 	# extract version number from string
 	version = re.findall("\d+\.\d+", version_string)

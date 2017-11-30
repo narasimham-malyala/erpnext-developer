@@ -66,12 +66,12 @@ def get_app(app, branch=None, bench_path='.', build_asset_files=True, verbose=Fa
 	cache.create()
 
 	# TODO: SHALLOW CLONE
-	app      = cache.get(app, branch = branch)
+	app       = cache.get(app, branch = branch)
 
-	src_dir  = app.working_dir
+	src_dir   = app.working_dir
 	repo_name = osp.split(src_dir)[-1]
-	apps_dir = osp.join(bench_path, 'apps')
-	app_dir  = osp.join(apps_dir, repo_name)
+	apps_dir  = osp.join(bench_path, 'apps')
+	app_dir   = osp.join(apps_dir, repo_name)
 
 	git.Repo.clone_from(src_dir, app_dir, branch = app.active_branch.name)
 	
