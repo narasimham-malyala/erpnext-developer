@@ -34,7 +34,7 @@ install:
 	$(PYTHON) setup.py develop
 
 clean:
-	rm -rf $(PACKAGE).egg-info
+	rm -rf $(BASEDIR)/$(PACKAGE).egg-info
 
 check.py3:
 	$(CANIUSEPY3) --requirements $(BASEDIR)/requirements-dev.txt
