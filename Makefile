@@ -34,6 +34,8 @@ install:
 	$(PYTHON) setup.py develop
 
 clean:
+	find $(BASEDIR) | grep -E "__pycache__|\.pyc" | xargs rm -rf
+
 	rm -rf $(BASEDIR)/$(PACKAGE).egg-info
 
 check.py3:
