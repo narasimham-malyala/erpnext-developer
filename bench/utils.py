@@ -4,6 +4,12 @@ import bench
 from bench import env
 from six import iteritems
 
+# imports - compatibility imports
+from six.moves.urllib.parse import urlparse
+
+# imports - standard imports
+import os.path as osp
+import errno
 
 class PatchError(Exception):
 	pass
@@ -27,7 +33,8 @@ def get_env_cmd(cmd, bench_path='.'):
 
 def init(path, apps_path=None, no_procfile=False, no_backups=False,
 		no_auto_update=False, frappe_path=None, frappe_branch=None, wheel_cache_dir=None,
-		verbose=False, clone_from=None, skip_bench_mkdir=False, skip_redis_config_generation=False):
+		verbose=False, clone_from=None, skip_bench_mkdir=False, skip_redis_config_generation=False,
+		python = 'python3'):
 	from .app import get_app, install_apps_from_path
 	from .config.common_site_config import make_config
 	from .config import redis
@@ -139,13 +146,22 @@ def exec_cmd(cmd, cwd='.'):
 	if return_code > 0:
 		raise CommandFailedError(cmd)
 
-def setup_env(bench_path='.'):
-	exec_cmd('virtualenv -q {} -p {}'.format('env', sys.executable), cwd=bench_path)
-	exec_cmd('./env/bin/pip -q install --upgrade pip', cwd=bench_path)
-	exec_cmd('./env/bin/pip -q install wheel', cwd=bench_path)
-	# exec_cmd('./env/bin/pip -q install https://github.com/frappe/MySQLdb1/archive/MySQLdb-1.2.5-patched.tar.gz', cwd=bench_path)
-	exec_cmd('./env/bin/pip -q install six', cwd=bench_path)
-	exec_cmd('./env/bin/pip -q install -e git+https://github.com/frappe/python-pdfkit.git#egg=pdfkit', cwd=bench_path)
+def setup_env(bench_path = None, python='python3', verbose = False):
+	bench_path = assign_if_empty(bench_path, os.getcwd())
+	venv_dir   = osp.join(bench_path, 'env')
+
+	venv       = which('virtualenv')
+	python     = which(python)
+	
+	exec_cmd('{venv} {verbose} {venv_dir} --python {python}'.format(
+		venv = venv, verbose = '--quiet' if verbose else '', venv_dir = venv_dir, python = python
+	))
+	
+	pip        = osp.join(venv_dir, 'bin', 'pip')
+
+	exec_cmd('./{pip} {verbose} install --upgrade pip'.format(
+		pip = pip, verbose = '--quiet' if verbose else ''
+	))
 
 def setup_socketio(bench_path='.'):
 	exec_cmd("npm install socket.io redis express superagent cookie babel-core less chokidar \
@@ -774,3 +790,34 @@ def run_playbook(playbook_name, extra_vars=None, tag=None):
 		args.extend(['-t', tag])
 	
 	subprocess.check_call(args, cwd=os.path.join(os.path.dirname(bench.__path__[0]), 'playbooks'))
+
+def which(executable, raise_err = True):
+	exec_ = find_executable(executable)
+	if not exec_ and raise_err:
+		raise ValueError('{exec_} not found.'.format(
+			exec_ = executable
+		))
+		
+	return exec_
+
+def assign_if_empty(param1, param2):
+	return param1 if param1 else param2
+
+def makedirs(dirs, exist_ok = False):
+	try:
+		os.makedirs(dirs)
+	except OSError as e:
+		if not exist_ok or e.errno != errno.EEXIST:
+			raise
+
+def check_url(url, raise_err = True):
+	url = urlparse(url)
+	if not url.scheme:
+		if raise_err:
+			raise TypeError('{url} not a valid URL.'.format(
+				url = url
+			))
+		else:
+			return False
+
+	return True

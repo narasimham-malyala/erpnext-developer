@@ -13,6 +13,17 @@ import bench
 import sys
 import shutil
 
+# imports - standard imports
+import os.path as osp
+import pkg_resources
+
+# imports - third-party imports
+import git
+
+# imports - module imports
+from bench.cache import Cache
+from bench import utils
+
 logging.basicConfig(level="DEBUG")
 logger = logging.getLogger(__name__)
 
@@ -48,29 +59,30 @@ def write_appstxt(apps, bench_path='.'):
 	with open(os.path.join(bench_path, 'sites', 'apps.txt'), 'w') as f:
 		return f.write('\n'.join(apps))
 
-def get_app(git_url, branch=None, bench_path='.', build_asset_files=True, verbose=False):
-	#less verbose app install
-	if '/' not in git_url:
-		git_url = 'https://github.com/frappe/' + git_url
-	#Gets repo name from URL
-	repo_name = git_url.rsplit('/', 1)[1].rsplit('.', 1)[0]
-	logger.info('getting app {}'.format(repo_name))
-	shallow_clone = '--depth 1' if check_git_for_shallow_clone() else ''
-	branch = '--branch {branch}'.format(branch=branch) if branch else ''
+def get_app(app, branch=None, bench_path='.', build_asset_files=True, verbose=False):
+	bench_path = utils.assign_if_empty(bench_path, os.getcwd())
 
-	exec_cmd("git clone {git_url} {branch} {shallow_clone} --origin upstream".format(
-				git_url=git_url,
-				shallow_clone=shallow_clone,
-				branch=branch),
-			cwd=os.path.join(bench_path, 'apps'))
+	cache = Cache()
+	cache.create()
 
-	#Retrieves app name from setup.py
-	app_path = os.path.join(bench_path, 'apps', repo_name, 'setup.py')
-	with open(app_path, 'rb') as f:
+	# TODO: SHALLOW CLONE
+	app      = cache.get(app, branch = branch)
+
+	src_dir  = app.working_dir
+	repo_name = osp.split(src_dir)[-1]
+	apps_dir = osp.join(bench_path, 'apps')
+	app_dir  = osp.join(apps_dir, repo_name)
+
+	git.Repo.clone_from(src_dir, app_dir, branch = app.active_branch.name)
+	
+	# TODO: Clean things below
+	
+	# Retrieves app name from setup.py
+	setup_path = osp.join(app_dir, 'setup.py')
+	with open(setup_path, 'rb') as f:
 		app_name = re.search(r'name\s*=\s*[\'"](.*)[\'"]', f.read().decode('utf-8')).group(1)
 		if repo_name != app_name:
-			apps_path = os.path.join(os.path.abspath(bench_path), 'apps')
-			os.rename(os.path.join(apps_path, repo_name), os.path.join(apps_path, app_name))
+			os.rename(os.path.join(apps_dir, repo_name), os.path.join(apps_dir, app_name))
 
 	print('installing', app_name)
 	install_app(app=app_name, bench_path=bench_path, verbose=verbose)

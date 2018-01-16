@@ -1,4 +1,5 @@
 caniusepython3
+ipython
 Click
 jinja2
 virtualenv

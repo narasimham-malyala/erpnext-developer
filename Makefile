@@ -18,6 +18,7 @@ endif
 VENVBIN     = $(VENV)/bin
 PYTHON      = $(VENVBIN)/python
 PIP         = $(VENVBIN)/pip
+IPYTHON     = $(VENVBIN)/ipython
 
 PYTEST      = $(VENVBIN)/pytest
 CANIUSEPY3  = $(VENVBIN)/caniusepython3
@@ -33,6 +34,9 @@ install:
 
 	$(PYTHON) setup.py develop
 
+console:
+	$(IPYTHON)
+
 clean:
 	find $(BASEDIR) | grep -E "__pycache__|\.pyc" | xargs rm -rf
 
@@ -43,3 +47,10 @@ check.py3:
 
 test:
 	$(PYTEST)
+
+foobar:
+	rm -rf foo.bar
+
+	clear
+
+	$(VENVBIN)/bench init foo.bar

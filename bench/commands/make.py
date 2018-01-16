@@ -2,6 +2,7 @@ import click
 
 @click.command()
 @click.argument('path')
+@click.option('--python', default = 'python3', help = 'Python interpreter to use.')
 @click.option('--apps_path', default=None, help="path to json files with apps to install after init")
 @click.option('--frappe-path', default=None, help="path to frappe repo")
 @click.option('--frappe-branch', default=None, help="path to frappe repo")
@@ -13,12 +14,13 @@ import click
 @click.option('--skip-bench-mkdir', is_flag=True, help="Skip mkdir frappe-bench")
 @click.option('--skip-redis-config-generation', is_flag=True, help="Skip redis config generation if already specifying the common-site-config file")
 def init(path, apps_path, frappe_path, frappe_branch, no_procfile, no_backups,
-		no_auto_update, clone_from, verbose, skip_bench_mkdir, skip_redis_config_generation):
+		no_auto_update, clone_from, verbose, skip_bench_mkdir, skip_redis_config_generation, python = 'python3'):
 	"Create a new bench"
 	from bench.utils import init
 	init(path, apps_path=apps_path, no_procfile=no_procfile, no_backups=no_backups,
 			no_auto_update=no_auto_update, frappe_path=frappe_path, frappe_branch=frappe_branch,
-			verbose=verbose, clone_from=clone_from, skip_bench_mkdir=skip_bench_mkdir, skip_redis_config_generation=skip_redis_config_generation)
+			verbose=verbose, clone_from=clone_from, skip_bench_mkdir=skip_bench_mkdir, skip_redis_config_generation=skip_redis_config_generation,
+			python = python)
 	click.echo('Bench {} initialized'.format(path))
 
 
